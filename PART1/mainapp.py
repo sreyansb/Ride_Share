@@ -41,7 +41,7 @@ class RemoveUser(Resource):
 			return Response({}, status = 204, mimetype="application/json")
 			# changed status code to 204 because 200 is when message body has stuff
 		else:
-			return Response({}, status = 400, mimetype = "application/json")
+			return Response({}, status = 400, mimetype="application/json")
 
 
 class CreateRide(Resource):
@@ -51,6 +51,38 @@ class CreateRide(Resource):
 		timestamp = req_json["timestamp"]
 		source = req_json["source"]
 		destination = req_json["destination"]
+
+		# check if the user exists
+		where = "`username`=" + str("'" + username + "'")
+		msgbody = {"table": "user", "column": ["username"], "where": where}
+		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=msgbody)
+		res = reply.json()
+		if(res):
+			#inserting into ride
+			query = {
+						"insert" : [username, timestamp, source, destination], 
+						"column" : ["created_by", "timestamp", "source", "destination"],
+						"table" : "ride"
+					}
+			requests.post("http://127.0.0.1:5000/api/v1/db/write", json=query)
+
+			# getting rideid
+			where = "`created_by`=" + "'" + username + "'" + "AND `timestamp` = '" + timestamp + "' AND `source` = " + str(source) + " AND `destination` = " + str(destination)
+			query = {"table" : "ride", "column" : ["rideid"], "where" : where}
+			reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=query)
+			rideid = reply.json()[0]["rideid"]
+
+			#inserting into rideuser
+			query = {
+						"insert" : [rideid, username],
+						"column" : ["rideid", "username"],
+						"table" : "rideuser"
+					}
+			requests.post("http://127.0.0.1:5000/api/v1/db/write", json = query)
+			return Response({}, status=201, mimetype="application/json")
+
+		else:
+			return Response({}, status=400, mimetype="application/json")
 
 
 # it is suggested we always provide 'get' method
@@ -157,7 +189,7 @@ class WriteDB(Resource):
 		data = request.get_json()
 
 		data_insert = data["insert"]
-		data_insert = ["'"+i+"'" for i in data_insert]
+		data_insert = ["'"+i+"'"  if type(i) != type(1) else str(i) for i in data_insert]
 		columns = data["column"]
 		columns = ["`"+i+"`" for i in columns]
 		tablename = data["table"]
