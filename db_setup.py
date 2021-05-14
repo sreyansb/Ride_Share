@@ -33,13 +33,13 @@ k='''CREATE TABLE `ride`(
          `created_by` VARCHAR(255) NOT NULL,
          `source` INT NOT NULL,
          `destination` INT NOT NULL,
-          FOREIGN KEY (`created_by`) REFERENCES `user`(`username`)
+          FOREIGN KEY (`created_by`) REFERENCES `user`(`username`) ON DELETE CASCADE
      );'''
 j='''CREATE TABLE `rideuser`(
          `rideid` BIGINT NOT NULL,
          `username` VARCHAR(255) NOT NULL,
-         FOREIGN KEY (`rideid`) REFERENCES ride(rideid),
-         FOREIGN KEY (`username`) REFERENCES user(username),
+         FOREIGN KEY (`rideid`) REFERENCES ride(rideid) ON DELETE CASCADE,
+         FOREIGN KEY (`username`) REFERENCES user(username) ON DELETE CASCADE,
          PRIMARY KEY(rideid,username)
      );'''
 #myc.execute(s+k+j,multi=True)
