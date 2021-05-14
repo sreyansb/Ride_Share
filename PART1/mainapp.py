@@ -55,15 +55,6 @@ class CreateRide(Resource):
 		destination = req_json["destination"]
 
 
-class JoinRide(Resource):
-
-	def get(self, ride_id):
-		return Response({}, status=405, mimetype="application/json")
-
-	def post(self, ride_id):
-		username = request.args["username"]
-
-
 # it is suggested we always provide 'get' method
 class RideApis(Resource):
 
