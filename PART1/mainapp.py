@@ -3,6 +3,7 @@ from flask_restful import Resource, Api
 import json
 import mysql.connector
 import requests
+import datetime #for usage in listing the rides
 
 app = Flask(__name__)
 api = Api(app)
@@ -83,7 +84,36 @@ class CreateRide(Resource):
 
 		else:
 			return Response({}, status=400, mimetype="application/json")
+	
+	def get(self):
+		try:
+			source=request.args["source"]
+		except:
+			return Response({}, status=400, mimetype="application/json")
+		try:
+			destination=request.args["destination"]
+		except:
+			return Response({}, status=400, mimetype="application/json")
+		cur_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+		print(cur_time)
 
+		wherecond=f"`source`={source} AND `destination`={destination} AND `timestamp`>={cur_time}"
+		msgbody={"table":"ride","column":["rideid","created_by","timestamp"],"where":wherecond}
+		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		ans1=reply.json()
+		
+		if reply.status_code==204:
+			finallist=[]
+			for i in ans1:
+				di={}
+				di["rideId"]=i["rideid"]
+				di["username"]=i["created_by"]
+				di["timestamo"]=i["timestamp"]
+				finallist.append(di)
+				del di
+			return Response(json.dumps(finallist),status=200,mimetype="application/json")
+		else:
+			return Response({},status=500,mimetype="application/json")
 
 # it is suggested we always provide 'get' method
 class RideApis(Resource):
@@ -205,7 +235,7 @@ class WriteDB(Resource):
 		myc.close()
 		mydb.close()
 
-		return Response({}, status=204, mimetype="application/json")
+		return Response({}, status=201, mimetype="application/json")
 
 
 class ReadDB(Resource):
