@@ -16,34 +16,32 @@ class AddUser(Resource):
 		where = "`username`='"+username+"'"
 		msgbody = {"table": "user", "column": ["username"], "where": where}
 		reply = requests.post(
-			"http://127.0.0.1:5000/api/v1/db/read", json=msgbody)
+			"http://127.0.0.1:5000/api/v1/db/read", json = msgbody)
 		ans = reply.json()
-		if not(ans):
-			return Response({}, status=404, mimetype="application/json")
+		if ans:
+			# user already exists
+			return Response({}, status = 400, mimetype = "application/json")
+		else:
+			msgbody = {"insert": [username, password], "column": ["username", "password"], "table": "user"}
+			reply = requests.post("http://127.0.0.1:5000/api/v1/db/write", json = msgbody)
+			return Response({}, status = 201, mimetype = "application/json")
 
 class RemoveUser(Resource):
 	def delete(self, username):
-		if not(username):
-			return Response({}, status=400, mimetype="application/json")
-		
-		wherecond = "`username`=" + str(username)
-		msgbody = {"table": "ride", "column": ["rideid"], "where": wherecond}
+		where = "`username`=" + str("'" + username + "'")
+		msgbody = {"table": "user", "column": ["username"], "where": where}
 		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json = msgbody)
 		res = reply.json()
 		if res:
-			mydb = mysql.connector.connect(
-				host="localhost", user="root", password="root", database="rideshare")
+			mydb = mysql.connector.connect(host="localhost", user="root",   database="rideshare")
 			myc = mydb.cursor()
-			query1 = "DELETE FROM ride WHERE rideid=%s"
+			query1 = "DELETE FROM `user` WHERE `username` = %s"
 			myc.execute(query1, (username,))
 			mydb.commit()
-			query2 = "DELETE FROM rideuser WHERE rideid=%s"
-			myc.execute(query2, (username,))
-			mydb.commit()
-			return Response({}, status=204, mimetype="application/json")
+			return Response({}, status = 204, mimetype="application/json")
 			# changed status code to 204 because 200 is when message body has stuff
 		else:
-			return Response({}, status=400, mimetype="application/json")
+			return Response({}, status = 400, mimetype = "application/json")
 
 
 class CreateRide(Resource):
@@ -133,7 +131,7 @@ class RideApis(Resource):
         reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
         res=reply.json()
         if res:
-            mydb=mysql.connector.connect(host="localhost",user="root",password="root",database="rideshare")
+            mydb=mysql.connector.connect(host="localhost",user="root", database="rideshare")
             myc=mydb.cursor()
             query1 = "DELETE FROM ride WHERE rideid=%s"
             myc.execute(query1,(ride_id,))
@@ -154,7 +152,7 @@ class WriteDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="localhost", user="root", password="root", database="rideshare")
+			host="localhost", user="root",   database="rideshare")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -185,7 +183,7 @@ class ReadDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="localhost", user="root", password="root", database="rideshare")
+			host="localhost", user="root",   database="rideshare")
 		myc = mydb.cursor()
 		data = request.get_json()
 
