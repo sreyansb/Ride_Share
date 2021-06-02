@@ -11,6 +11,7 @@ api = Api(app)
 
 
 class AddUser(Resource):
+
 	def put(self):
 
 		req_json = request.get_json()
@@ -42,6 +43,22 @@ class AddUser(Resource):
     				return Response({}, status = 500, mimetype="application/json")
 			return Response({}, status = 201, mimetype = "application/json")
 
+	def get(self):
+		msgbody = {"table": "user", "column": ["username"]}
+		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json = msgbody)
+		if reply.status_code!=200:
+    			return Response({}, status = 500, mimetype="application/json")
+		res=reply.json()
+		if res:
+			res=json.loads(res)
+			if len(res)<1:
+				return Response({}, status = 204, mimetype="application/json")
+			li=[]
+			for i in res:
+				li.append(i["username"])
+			return Response(json.dumps(li), status = 200, mimetype="application/json")
+		else:
+			return Response({}, status = 400, mimetype="application/json")
 
 class RemoveUser(Resource):
 	def delete(self, username):
@@ -54,7 +71,7 @@ class RemoveUser(Resource):
 		res = reply.json()
 
 		if res:
-			mydb = mysql.connector.connect(host="localhost", user="root",password="root",database="rideshare")
+			mydb = mysql.connector.connect(host="localhost", user="root",password="root",database="usersDB")
 			myc = mydb.cursor()
 			query1 = "DELETE FROM `user` WHERE `username` = %s"
 			myc.execute(query1, (username,))
@@ -71,7 +88,7 @@ class WriteDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="localhost", user="root",password="root",database="rideshare")
+			host="localhost", user="root",password="root",database="usersDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -103,17 +120,24 @@ class ReadDB(Resource):
 	def post(self):
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
-			host="localhost", user="root",password="root",database="rideshare")
+			host="localhost", user="root",password="root",database="usersDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
 		tablename = data["table"]
 		colnames = data["column"]
 		columns = ["`"+i+"`" for i in colnames]
-		condition = data["where"]
+		condition=""
+		try:
+			condition = data["where"]
+		except:
+			pass
 		columns = ', '.join(columns)
 		# has to be formatted string, cant give normal mysql statements
-		s = f"SELECT {columns} FROM `{tablename}` WHERE {condition};"
+		if condition:
+			s = f"SELECT {columns} FROM `{tablename}` WHERE {condition};"
+		else:
+			s = f"SELECT {columns} FROM `{tablename}`"
 		res = myc.execute(s)
 		# it is myc.fetchone()/fetchall and not res.fetchone()
 		res = myc.fetchall()
@@ -132,6 +156,18 @@ class ReadDB(Resource):
 
 		return Response(json.dumps(final_res), status=200, mimetype="application/json")
 
+class ClearDB(Resource):
+	def post(self):
+		try:
+			mydb = mysql.connector.connect(host="localhost", user="root",password="root",database="usersDB")
+			myc = mydb.cursor()
+		except:
+			return Response({},status=400,mimetype="application/json")
+		query="DELETE FROM `user`;"
+		myc.execute(query)
+		mydb.commit()
+		return Response({},status=204,mimetype="application/json")
 
 api.add_resource(RemoveUser, "/api/v1/users/<string:username>")
 api.add_resource(AddUser, "/api/v1/users")
+api.add_resource(ClearDB, "/api/v1/db/clear")
