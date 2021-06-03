@@ -28,7 +28,7 @@ class AddUser(Resource):
 		where = "`username`='"+username+"'"
 		msgbody = {"table": "user", "column": ["username"], "where": where}
 		reply = requests.post(
-			"http://127.0.0.1:5000/api/v1/db/read", json = msgbody)	
+			"http://users:5000/api/v1/db/read", json = msgbody)	
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype="application/json")
 		ans = reply.json()
@@ -38,14 +38,14 @@ class AddUser(Resource):
 			return Response({}, status = 400, mimetype = "application/json")
 		else:
 			msgbody = {"insert": [username, password], "column": ["username", "password"], "table": "user"}
-			reply = requests.post("http://127.0.0.1:5000/api/v1/db/write", json = msgbody)
+			reply = requests.post("http://users:5000/api/v1/db/write", json = msgbody)
 			if reply.status_code!=201:
     				return Response({}, status = 500, mimetype="application/json")
 			return Response({}, status = 201, mimetype = "application/json")
 
 	def get(self):
 		msgbody = {"table": "user", "column": ["username"]}
-		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json = msgbody)
+		reply = requests.post("http://users:5000/api/v1/db/read", json = msgbody)
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype="application/json")
 		res=reply.json()
@@ -65,7 +65,7 @@ class RemoveUser(Resource):
 
 		where = "`username`=" + str("'" + username + "'")
 		msgbody = {"table": "user", "column": ["username"], "where": where}
-		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json = msgbody)
+		reply = requests.post("http://users:5000/api/v1/db/read", json = msgbody)
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype="application/json")
 		res = reply.json()
