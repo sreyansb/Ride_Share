@@ -25,44 +25,45 @@ class CreateRide(Resource):
 			return Response({}, status = 400, mimetype = "application/json")
 		
 		# check if the user exists
-		where = "`username`=" + str("'" + username + "'")
-		msgbody = {"table": "user", "column": ["username"], "where": where}
-		reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=msgbody)
+		reply = requests.get("http://users_service:5000/api/v1/users")
+		if reply.status_code==204:
+			return Response({}, status = 400, mimetype = "application/json")
+	
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype = "application/json")
+		
 		res = reply.json()
 
-		if(res):
-			#inserting into ride
-			query = {
-						"insert" : [username, timestamp, source, destination], 
-						"column" : ["created_by", "timestamp", "source", "destination"],
-						"table" : "ride"
-					}
-			ans=requests.post("http://127.0.0.1:5000/api/v1/db/write", json=query)
-			if ans.status_code!=201:
-    				return Response({}, status = 500, mimetype = "application/json")
-			# getting rideid
-			where = "`created_by`=" + "'" + username + "'" + "AND `timestamp` = '" + timestamp + "' AND `source` = " + str(source) + " AND `destination` = " + str(destination)
-			query = {"table" : "ride", "column" : ["rideid"], "where" : where}
-			reply = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=query)
-			if reply.status_code!=200:
-    				return Response({}, status = 500, mimetype = "application/json")
-			rideid = reply.json()[0]["rideid"]
+		if username not in res:
+			return Response({}, status = 400, mimetype = "application/json")
+		
+		query = {
+					"insert" : [username, timestamp, source, destination], 
+					"column" : ["created_by", "timestamp", "source", "destination"],
+					"table" : "ride"
+				}
+		ans=requests.post("http://rides_service:5000/api/v1/db/write", json=query)
+		if ans.status_code!=201:
+				return Response({}, status = 500, mimetype = "application/json")
+		# getting rideid
+		where = "`created_by`=" + "'" + username + "'" + "AND `timestamp` = '" + timestamp + "' AND `source` = " + str(source) + " AND `destination` = " + str(destination)
+		query = {"table" : "ride", "column" : ["rideid"], "where" : where}
+		reply = requests.post("http://rides_service:5000/api/v1/db/read", json=query)
+		if reply.status_code!=200:
+				return Response({}, status = 500, mimetype = "application/json")
+		rideid = reply.json()[0]["rideid"]
 
-			#inserting into rideuser
-			query = {
-						"insert" : [rideid, username],
-						"column" : ["rideid", "username"],
-						"table" : "rideuser"
-					}
-			ans = requests.post("http://127.0.0.1:5000/api/v1/db/write", json = query)
-			if ans.status_code!=201:
-    				return Response({}, status = 500, mimetype = "application/json")
-			return Response({}, status=201, mimetype="application/json")
+		#inserting into rideuser
+		query = {
+					"insert" : [rideid, username],
+					"column" : ["rideid", "username"],
+					"table" : "rideuser"
+				}
+		ans = requests.post("http://rides_service:5000/api/v1/db/write", json = query)
+		if ans.status_code!=201:
+				return Response({}, status = 500, mimetype = "application/json")
+		return Response({}, status=201, mimetype="application/json")
 
-		else:
-			return Response({}, status=400, mimetype="application/json")
 	
 	def get(self):
     	
@@ -77,7 +78,7 @@ class CreateRide(Resource):
 		
 		wherecond=f"`source`={source} AND `destination`={destination} AND `timestamp`>=NOW()"
 		msgbody={"table":"ride","column":["rideid","created_by","timestamp"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		ans1=reply.json()
 
 		if reply.status_code==200:
@@ -104,7 +105,7 @@ class RideApis(Resource):
 		#to verify that the ride exists
 		wherecond="`rideid`="+str(ride_id)
 		msgbody={"table":"ride","column":["rideid"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     			return Response({},status=500,mimetype="application/json")
 		ans=reply.json()
@@ -113,14 +114,14 @@ class RideApis(Resource):
 		
 		#to get the rideID, created_by, Timestamp, source and destination of the ride
 		msgbody={"table":"ride","column":["rideid","created_by","source","destination","timestamp"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     			return Response({},status=500,mimetype="application/json")
 		ans1=reply.json()
 
 		#to get all the users of the ride
 		msgbody={"table":"rideuser","column":["username"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     			return Response({},status=500,mimetype="application/json")
 		ans2=reply.json()
@@ -145,7 +146,7 @@ class RideApis(Resource):
 		#to check if ride exists
 		wherecond="`rideid`="+str(ride_id)
 		msgbody={"table":"ride","column":["rideid"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     			return Response({},status=500,mimetype="application/json")
 		ans=reply.json()
@@ -153,28 +154,37 @@ class RideApis(Resource):
 			return Response({},status=404,mimetype="application/json")
 		
 		#to check if user_name exists in the body of the message
-		username=request.get_json()["username"]
-		wherecond="`username`='"+username+"'"# have to give quotes around username or string types
-		msgbody={"table":"user","column":["username"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		try:
+			username=request.get_json()["username"]
+		except:
+			return Response({},status=400,mimetype="application/json")
+		
+		reply = requests.get("http://users_service:5000/api/v1/users")
+
+		if reply.status_code==204:
+			return Response({}, status = 400, mimetype = "application/json")
+	
 		if reply.status_code!=200:
-    			return Response({},status=500,mimetype="application/json")
-		ans=reply.json()
-		if not(ans):
-			return Response({},status=404,mimetype="application/json")
+    			return Response({}, status = 500, mimetype = "application/json")
+		
+		res = reply.json()
+
+		if username not in res:
+			return Response({}, status = 400, mimetype = "application/json")
 		
 		wherecond="`username`='"+username+"' AND "+"`rideid`="+str(ride_id)
 		msgbody={"table":"rideuser","column":["rideid","username"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     			return Response({},status=500,mimetype="application/json")
 		ans=reply.json()
+
 		if ans:
 			#if already found=>it was already there => bad request
 			return Response({},status=400,mimetype="application/json")
 		else:
 			msgbody={"table":"rideuser","column":["rideid","username"],"insert":[ride_id,username]}
-			reply=requests.post("http://127.0.0.1:5000/api/v1/db/write",json=msgbody)
+			reply=requests.post("http://rides_service:5000/api/v1/db/write",json=msgbody)
 			if reply.status_code!=201:
     				return Response({},status=500,mimetype="application/json")
 			return Response({},status=201,mimetype="application/json")
@@ -185,12 +195,12 @@ class RideApis(Resource):
 			return Response({},status=400,mimetype="application/json")
 		wherecond="`rideid`="+str(ride_id)
 		msgbody={"table":"ride","column":["rideid"],"where":wherecond}
-		reply=requests.post("http://127.0.0.1:5000/api/v1/db/read",json=msgbody)
+		reply=requests.post("http://rides_service:5000/api/v1/db/read",json=msgbody)
 		if reply.status_code!=200:
     				return Response({},status=500,mimetype="application/json")
 		res=reply.json()
 		if res:
-			mydb=mysql.connector.connect(host="localhost",user="root",password="root", database="rideshare")
+			mydb=mysql.connector.connect(host="ride_db_service",user="root",password="root", database="ridesDB")
 			myc=mydb.cursor()
 			query2 = "DELETE FROM rideuser WHERE rideid=%s"
 			myc.execute(query2,(ride_id,))
@@ -211,11 +221,12 @@ class WriteDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="localhost", user="root",password="root",database="rideshare")
+			host="ride_db_service", user="root",password="root",database="ridesDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
 		data_insert = data["insert"]
+		#if type(i) == int dont need quotes: type(1)==int
 		data_insert = ["'"+i+"'"  if type(i) != type(1) else str(i) for i in data_insert]
 		columns = data["column"]
 		columns = ["`"+i+"`" for i in columns]
@@ -243,7 +254,7 @@ class ReadDB(Resource):
 	def post(self):
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
-			host="localhost", user="root",password="root",database="rideshare")
+			host="ride_db_service", user="root",password="root",database="ridesDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -272,6 +283,19 @@ class ReadDB(Resource):
 
 		return Response(json.dumps(final_res), status=200, mimetype="application/json")
 
+class ClearDB(Resource):
+	def post(self):
+		try:
+			mydb = mysql.connector.connect(host="ride_db_service", user="root",password="root",database="ridesDB")
+			myc = mydb.cursor()
+		except:
+			return Response({},status=400,mimetype="application/json")
+		query="DELETE FROM `rideuser`;"
+		myc.execute(query)
+		query="DELETE FROM `ride`;"
+		myc.execute(query)
+		mydb.commit()
+		return Response({},status=204,mimetype="application/json")
 
 
 # if ride_id is not given, it sends a 404 error
@@ -279,6 +303,7 @@ api.add_resource(RideApis, "/api/v1/rides/<int:ride_id>")
 api.add_resource(CreateRide, "/api/v1/rides")
 api.add_resource(WriteDB, "/api/v1/db/write")
 api.add_resource(ReadDB, "/api/v1/db/read")
+api.add_resource(ClearDB, "/api/v1/db/clear")
 
 if __name__ == "__main__":
 	app.run(debug=True)

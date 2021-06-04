@@ -3,7 +3,7 @@ import mysql.connector
 #creating a new schema/database
 
 mydb=mysql.connector.connect(
-    host="localhost",
+    host="user_db_service",
     user="root",
     password="root"
     )
@@ -16,7 +16,7 @@ mydb.close()
 
 
 mydb=mysql.connector.connect(
-    host="localhost",
+    host="user_db_service",
     user="root",
     password="root",
     database="usersDB")
