@@ -1,0 +1,53 @@
+version: "3"
+services:
+
+    ride_db_service:
+        image: mysql:8.0
+        container_name: ride_db_service
+        restart: always
+        environment: 
+            MYSQL_DATABASE: ridesDB
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: admin
+        ports:
+            - "3306:3306"
+        networks: 
+            - ridebackend
+        volumes: 
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+            - myridesvol:/var/lib/mysql
+
+    rides_service:
+        container_name: rides_service
+        restart: always
+        build: ./Rides
+        expose: 
+            - "5000"
+        ports:
+            - "5000:5000"
+        depends_on: 
+            - ride_db_service
+        links: 
+            - ride_db_service
+        networks: 
+            - ridebackend
+        
+    nginx-ride-service:
+        container_name: nginx-ride-service
+        restart: always
+        build: ./nginx
+        expose:
+            - "8080"
+        ports:
+            - "8080:8080"
+        depends_on: 
+            - rides_service
+        networks: 
+            - ridebackend 
+
+networks: 
+    ridebackend:
+    
+volumes: 
+    myridesvol:

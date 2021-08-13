@@ -200,7 +200,7 @@ class RideApis(Resource):
     				return Response({},status=500,mimetype="application/json")
 		res=reply.json()
 		if res:
-			mydb=mysql.connector.connect(host="ride_db_service",user="root",password="root", database="ridesDB")
+			mydb=mysql.connector.connect(host="ride_db_service",user="admin",password="admin", database="ridesDB")
 			myc=mydb.cursor()
 			query2 = "DELETE FROM rideuser WHERE rideid=%s"
 			myc.execute(query2,(ride_id,))
@@ -221,7 +221,7 @@ class WriteDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="ride_db_service", user="root",password="root",database="ridesDB")
+			host="ride_db_service", user="admin",password="admin",database="ridesDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -254,7 +254,7 @@ class ReadDB(Resource):
 	def post(self):
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
-			host="ride_db_service", user="root",password="root",database="ridesDB")
+			host="ride_db_service", user="admin",password="admin",database="ridesDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -286,7 +286,7 @@ class ReadDB(Resource):
 class ClearDB(Resource):
 	def post(self):
 		try:
-			mydb = mysql.connector.connect(host="ride_db_service", user="root",password="root",database="ridesDB")
+			mydb = mysql.connector.connect(host="ride_db_service", user="admin",password="admin",database="ridesDB")
 			myc = mydb.cursor()
 		except:
 			return Response({},status=400,mimetype="application/json")
@@ -305,5 +305,3 @@ api.add_resource(WriteDB, "/api/v1/db/write")
 api.add_resource(ReadDB, "/api/v1/db/read")
 api.add_resource(ClearDB, "/api/v1/db/clear")
 
-if __name__ == "__main__":
-	app.run(debug=True)

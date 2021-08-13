@@ -49,8 +49,9 @@ class AddUser(Resource):
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype="application/json")
 		res=reply.json()
+		#print(res)
 		if res:
-			res=json.loads(res)
+			#res=json.loads(res)
 			if len(res)<1:
 				return Response({}, status = 204, mimetype="application/json")
 			li=[]
@@ -71,7 +72,7 @@ class RemoveUser(Resource):
 		res = reply.json()
 
 		if res:
-			mydb = mysql.connector.connect(host="localhost", user="root",password="root",database="usersDB")
+			mydb = mysql.connector.connect(host="user_db_service", user="admin",password="admin",database="usersDB")
 			myc = mydb.cursor()
 			query1 = "DELETE FROM `user` WHERE `username` = %s"
 			myc.execute(query1, (username,))
@@ -88,7 +89,7 @@ class WriteDB(Resource):
 
 	def post(self):
 		mydb = mysql.connector.connect(
-			host="user_db_service", user="root",password="root",database="usersDB")
+			host="user_db_service", user="admin",password="admin",database="usersDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -120,7 +121,7 @@ class ReadDB(Resource):
 	def post(self):
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
-			host="user_db_service", user="root",password="root",database="usersDB")
+			host="user_db_service", user="admin",password="admin",database="usersDB")
 		myc = mydb.cursor()
 		data = request.get_json()
 
@@ -159,7 +160,7 @@ class ReadDB(Resource):
 class ClearDB(Resource):
 	def post(self):
 		try:
-			mydb = mysql.connector.connect(host="user_db_service", user="root",password="root",database="usersDB")
+			mydb = mysql.connector.connect(host="user_db_service", user="admin",password="admin",database="usersDB")
 			myc = mydb.cursor()
 		except:
 			return Response({},status=400,mimetype="application/json")
@@ -171,6 +172,6 @@ class ClearDB(Resource):
 api.add_resource(RemoveUser, "/api/v1/users/<string:username>")
 api.add_resource(AddUser, "/api/v1/users")
 api.add_resource(ClearDB, "/api/v1/db/clear")
+api.add_resource(WriteDB, "/api/v1/db/write")
+api.add_resource(ReadDB, "/api/v1/db/read")
 
-if __name__ == "__main__":
-	app.run(debug=True)

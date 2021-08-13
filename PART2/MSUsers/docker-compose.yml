@@ -1,0 +1,55 @@
+version: "3"
+services: 
+
+    user_db_service:
+        image: mysql:8.0
+        container_name: user_db_service
+        restart: always
+        environment: 
+            MYSQL_DATABASE: usersDB
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: admin
+            MYSQL_ROOT_PASSWORD: root
+        ports:
+            - "3306:3306"
+        networks: 
+            - userbackend
+        volumes: 
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+            - myusersvol:/var/lib/mysql
+
+    users_service:
+        container_name: users_service
+        restart: always
+        build: ./Users
+        expose: 
+            - "5000"
+        ports:
+            - "5000:5000"
+        depends_on: 
+            - user_db_service
+        links: 
+            - user_db_service
+        networks: 
+            - userbackend
+    
+    nginx-service:
+        container_name: nginx-service
+        restart: always
+        build: ./nginx
+        expose:
+            - "8080"
+        ports:
+            - "8080:8080"
+        depends_on: 
+            - users_service
+        networks:
+            - userbackend
+
+networks: 
+    userbackend:
+
+volumes: 
+    myusersvol:
+    
+
