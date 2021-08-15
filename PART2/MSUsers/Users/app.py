@@ -5,15 +5,20 @@ import mysql.connector
 import requests
 import datetime #for usage in listing the rides
 import re
+from multiprocessing import Value
 
 app = Flask(__name__)
+numberofrequests=Value('i',0)
 api = Api(app)
 
+def atomicincrementer():
+	with numberofrequests.get_lock():
+		numberofrequests.value+=1
 
 class AddUser(Resource):
 
 	def put(self):
-
+		atomicincrementer()
 		req_json = request.get_json()
 		try:
 			username = req_json["username"]
@@ -44,12 +49,12 @@ class AddUser(Resource):
 			return Response({}, status = 201, mimetype = "application/json")
 
 	def get(self):
+		atomicincrementer()
 		msgbody = {"table": "user", "column": ["username"]}
 		reply = requests.post("http://users_service:5000/api/v1/db/read", json = msgbody)
 		if reply.status_code!=200:
     			return Response({}, status = 500, mimetype="application/json")
 		res=reply.json()
-		#print(res)
 		if res:
 			#res=json.loads(res)
 			if len(res)<1:
@@ -63,7 +68,7 @@ class AddUser(Resource):
 
 class RemoveUser(Resource):
 	def delete(self, username):
-
+		atomicincrementer()
 		where = "`username`=" + str("'" + username + "'")
 		msgbody = {"table": "user", "column": ["username"], "where": where}
 		reply = requests.post("http://users_service:5000/api/v1/db/read", json = msgbody)
@@ -88,6 +93,7 @@ class WriteDB(Resource):
 		return Response({}, status=405, mimetype="application/json")
 
 	def post(self):
+		atomicincrementer()
 		mydb = mysql.connector.connect(
 			host="user_db_service", user="admin",password="admin",database="usersDB")
 		myc = mydb.cursor()
@@ -119,6 +125,7 @@ class ReadDB(Resource):
 		return Response({}, status=405, mimetype="application/json")
 
 	def post(self):
+		atomicincrementer()
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
 			host="user_db_service", user="admin",password="admin",database="usersDB")
@@ -159,6 +166,7 @@ class ReadDB(Resource):
 
 class ClearDB(Resource):
 	def post(self):
+		atomicincrementer()
 		try:
 			mydb = mysql.connector.connect(host="user_db_service", user="admin",password="admin",database="usersDB")
 			myc = mydb.cursor()
@@ -169,6 +177,20 @@ class ClearDB(Resource):
 		mydb.commit()
 		return Response({},status=204,mimetype="application/json")
 
+class Incrementer(Resource):
+
+	def get(self):
+		ans=0
+		with numberofrequests.get_lock():
+			ans=numberofrequests.value
+		return Response(json.dumps(ans),status=200,mimetype="application/json")
+
+	def delete(self):
+		with numberofrequests.get_lock():
+			numberofrequests.value=0
+		return Response({},status=204,mimetype="application/json")
+
+api.add_resource(Incrementer, "/api/v1/_count")
 api.add_resource(RemoveUser, "/api/v1/users/<string:username>")
 api.add_resource(AddUser, "/api/v1/users")
 api.add_resource(ClearDB, "/api/v1/db/clear")
