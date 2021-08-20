@@ -5,13 +5,20 @@ import mysql.connector
 import requests
 import datetime #for usage in listing the rides
 import re
+from multiprocessing import Value
 
 app = Flask(__name__)
+numberofrequests=Value('i',0)
+numberofrides=Value('i',0)
 api = Api(app)
+
+def atomicincrementer():
+	with numberofrequests.get_lock():
+		numberofrequests.value+=1
 
 class CreateRide(Resource):
 	def post(self):
-    	
+		atomicincrementer()
 		req_json = request.get_json()
 		try:
 			username = created_by = req_json["created_by"]
@@ -62,11 +69,13 @@ class CreateRide(Resource):
 		ans = requests.post("http://rides_service:5000/api/v1/db/write", json = query)
 		if ans.status_code!=201:
 				return Response({}, status = 500, mimetype = "application/json")
+		with numberofrides.get_lock():
+			numberofrides.value+=1
 		return Response({}, status=201, mimetype="application/json")
 
 	
 	def get(self):
-    	
+		atomicincrementer()
 		try:
 			source=request.args["source"]
 		except:
@@ -99,6 +108,7 @@ class CreateRide(Resource):
 class RideApis(Resource):
 
 	def get(self,ride_id):
+		atomicincrementer()
 		if not(ride_id):
 			return Response({},status=400,mimetype="application/json")
 		
@@ -140,6 +150,7 @@ class RideApis(Resource):
 		return Response(json.dumps(di),status=200,mimetype="application/json")
 	
 	def post(self,ride_id):
+		atomicincrementer()
 		if not(ride_id):
 			return Response({},status=400,mimetype="application/json")
 		
@@ -190,6 +201,7 @@ class RideApis(Resource):
 			return Response({},status=201,mimetype="application/json")
 	
 	def delete(self,ride_id):
+		atomicincrementer()
 		#return Response({},status=400,mimetype="application/json")
 		if not(ride_id):
 			return Response({},status=400,mimetype="application/json")
@@ -220,6 +232,7 @@ class WriteDB(Resource):
 		return Response({}, status=405, mimetype="application/json")
 
 	def post(self):
+		atomicincrementer()
 		mydb = mysql.connector.connect(
 			host="ride_db_service", user="admin",password="admin",database="ridesDB")
 		myc = mydb.cursor()
@@ -252,6 +265,7 @@ class ReadDB(Resource):
 		return Response({}, status=405, mimetype="application/json")
 
 	def post(self):
+		atomicincrementer()
 		#return Response({}, status=400, mimetype="application/json")
 		mydb = mysql.connector.connect(
 			host="ride_db_service", user="admin",password="admin",database="ridesDB")
@@ -285,6 +299,7 @@ class ReadDB(Resource):
 
 class ClearDB(Resource):
 	def post(self):
+		atomicincrementer()
 		try:
 			mydb = mysql.connector.connect(host="ride_db_service", user="admin",password="admin",database="ridesDB")
 			myc = mydb.cursor()
@@ -297,6 +312,27 @@ class ClearDB(Resource):
 		mydb.commit()
 		return Response({},status=204,mimetype="application/json")
 
+class Incrementer(Resource):
+
+	def get(self):
+		ans=0
+		with numberofrequests.get_lock():
+			ans=numberofrequests.value
+		return Response(json.dumps(ans),status=200,mimetype="application/json")
+
+	def delete(self):
+		with numberofrequests.get_lock():
+			numberofrequests.value=0
+		return Response({},status=204,mimetype="application/json")
+
+class RideNumber(Resource):
+	def get(self):
+		ans=0
+		with numberofrides.get_lock():
+			ans=numberofrides.value
+		return Response(json.dumps(ans),status=200,mimetype="application/json")
+
+api.add_resource(Incrementer, "/api/v1/_count")
 
 # if ride_id is not given, it sends a 404 error
 api.add_resource(RideApis, "/api/v1/rides/<int:ride_id>")
