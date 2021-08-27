@@ -223,7 +223,7 @@ class RideApis(Resource):
 			return Response({},status=204,mimetype="application/json")
 			#changed status code to 204 because 200 is when message body has stuff
 		else:
-			return Response({},status=400,mimetype="application/json")
+			return Response({},status=404,mimetype="application/json")
 
 
 class WriteDB(Resource):
